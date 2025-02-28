@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxalyze - Dashboard</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Voxalyze">
+    <link rel="apple-touch-icon" href="/static/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192x192.png">
+    <meta name="theme-color" content="#1C593C">
+    <style>
+        :root {
+            --emerald-light: #50C879;
+            --emerald-dark: #2D8A5E;
+            --emerald-darker: #1C593C;
+            --black: #000000;
+            --white: #FFFFFF;
+            --gray: #808080;
+            --danger: #FF5C5C;
+        }
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--white);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background-color: var(--emerald-darker);
+            color: var(--white);
+        }
+        .burger-menu {
+            font-size: 24px;
+            cursor: pointer;
+            background: url('/static/burger.svg') no-repeat center center;
+            background-size: contain;
+            width: 37.5px;
+            height: 37.5px;
+        }
+        .menu-items {
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            background-color: var(--white);
+            border: 2px solid var(--emerald-dark);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .menu-items .nav-item {
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .menu-items .nav-item:hover {
+            color: var(--emerald-light);
+        }
+        .menu-items .nav-item.active {
+            color: var(--emerald-light);
+            font-weight: bold;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+        }
+        h1, h2 {
+            background-image: linear-gradient(to right, var(--emerald-light), var(--emerald-darker));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        input, button {
+            margin-top: 10px;
+            padding: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: var(--emerald-dark);
+            color: var(--white);
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: var(--emerald-darker);
+        }
+        .logout-button {
+            margin-bottom: 10px;
+            background-color: var(--white);
+            color: var(--emerald-dark);
+            font-weight: bold;
+            padding: 10px;
+            cursor: pointer;
+            transition: color 0.3s ease, border-color 0.3s ease;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logout-button:hover {
+            color: var(--danger);
+        }
+        .floating-button {
+            position: fixed;
+            bottom: 27px;
+            right: 27px;
+            background-color: var(--emerald-light);
+            color: var(--white);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        /*
+        @media (max-width: 768px) {
+            .burger-menu {
+                margin-bottom: 10px;
+            }
+            .menu-items {
+                width: 100%;
+                position: static;
+                top: auto;
+                left: auto;
+                border: none;
+                box-shadow: none;
+            }
+        }
+        */
+        #error-message {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px); /* Start slightly off-screen */
+            width: 80%;
+            max-width: 500px;
+            opacity: 0; /* Start invisible */
+            background-color: var(--white);
+            color: var(--danger);
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: 2px solid var(--danger);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            text-align: center;
+            transition: opacity 0.3s ease, transform 0.3s ease; /* Smooth transitions */
+            display: none; /* Hide initially */
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="burger-menu" id="burgerMenu"></div>
+        <div class="logo">Voxalyze</div>
+    </div>
+    <div class="menu-items" id="menuItems">
+        <div class="nav-item active" data-tab="general-insights">General Insights</div>
+        <div class="nav-item" data-tab="io-search-engine">I/O & Search Engine</div>
+        <div class="nav-item" data-tab="payments">Payment & Subscriptions</div>
+        <div class="nav-item" data-tab="api">API Configuration</div>
+        <div class="nav-item" data-tab="profile-settings">Profile Settings</div>
+        <div class="logout-button" id="logout">Log Out</div>
+    </div>
+    <div class="content">
+        <div id="general-insights" class="tab-content active">
+            <h1>General Insights</h1>
+            <p>Welcome to your Voxalyze dashboard. Insightful data visualization will be available upon the completion of uploading 10 hours of recorded calls.</p>
+            <div id="userData"></div>
+        </div>
+        <div id="io-search-engine" class="tab-content">
+            <h1>I/O & Search Engine</h1>
+            <input type="text" placeholder="Search for specific words">
+            <button>Search</button>
+            <button>Upload New Record</button>
+        </div>
+        <div id="payments" class="tab-content">
+            <h1>Payment & Subscriptions</h1>
+            <p>Manage your subscription and payment methods here.</p>
+        </div>
+        <div id="api" class="tab-content">
+            <h1>API Configuration</h1>
+            <button>Generate New Access Token</button>
+            <button>View API Documentation</button>
+        </div>
+        <div id="profile-settings" class="tab-content">
+            <h1>Profile Settings</h1>
+            <p>Manage your profile settings here.</p>
+            <form id="profileForm">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username">
+
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email">
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" placeholder="Enter a new password">
+
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+    <div id="error-message" style="display: none; color: var(--danger);"></div>
+    <button class="floating-button">?</button>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchUserData();
+            setupNavigation();
+        });
+
+        document.getElementById('burgerMenu').addEventListener('click', function() {
+            const menu = document.getElementById('menuItems');
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        });
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        async function fetchUserData() {
+            const token = getCookie('access_token');
+            if (!token) {
+                displayAuthError('No authentication token found. Please log in again.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const userData = await response.json();
+                    displayUserData(userData);
+                } else if (response.status === 401) {
+                    displayAuthError('Your session has expired. Please log in again.');
+                    document.cookie = 'access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                    window.location.href = '/login';
+                } else {
+                    throw new Error('Failed to fetch user data');
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                displayAuthError('Failed to load user data. Please try refreshing the page.');
+            }
+        }
+
+        function displayUserData(userData) {
+            const userDataElement = document.getElementById('userData');
+            if (userDataElement) {
+                userDataElement.innerHTML = `
+                    <h2>User Information</h2>
+                    <p><strong>Email:</strong> ${userData.email}</p>
+                    <p><strong>User ID:</strong> ${userData.user_id}</p>
+                `;
+            }
+        }
+
+        function displayAuthError(message) {
+            const errorElement = document.getElementById('error-message');
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                errorElement.style.opacity = '1';
+                errorElement.style.transform = 'translateX(-50%) translateY(0)'; // Move into view
+
+                setTimeout(() => {
+                    errorElement.style.opacity = '0';
+                    errorElement.style.transform = 'translateX(-50%) translateY(10px)'; // Move out of view
+                    setTimeout(() => {
+                        errorElement.style.display = 'none';
+                    }, 300);
+                }, 4000);
+            }
+        }
+
+        document.getElementById('logout').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getCookie('access_token')}`
+                    },
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    document.cookie = 'access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+                    window.location.href = '/?logout=true';
+                } else {
+                    throw new Error('Logout failed');
+                }
+            } catch (error) {
+                console.error('Error during logout:', error);
+                document.getElementById('error-message').textContent = 'Failed to log out. Please try again.';
+            }
+        });
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const tab = this.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tab).classList.add('active');
+
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                });
+            });
+        }
+    </script>
+</body>
+</html>

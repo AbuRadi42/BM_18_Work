@@ -1,0 +1,16 @@
+{
+  "name": "Voxalyze",
+  "short_name": "Voxalyze",
+  "description": "",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1C593C",
+  "icons": [
+    {
+      "src": "/static/icon-390x390.png",
+      "sizes": "390x390",
+      "type": "image/png"
+    }
+  ]
+}

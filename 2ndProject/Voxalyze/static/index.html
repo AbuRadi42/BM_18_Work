@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voxalyze - Sign In/Sign Up</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Voxalyze">
+    <link rel="apple-touch-icon" href="/static/icon-390x390.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192x192.png">
+    <meta name="theme-color" content="#1C593C">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root {
+            --emerald-light: #50C879;
+            --emerald-dark: #2D8A5E;
+            --emerald-darker: #1C593C;
+            --black: #000000;
+            --white: #FFFFFF;
+            --gray: #808080;
+            --danger: #FF5C5C;
+        }
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--emerald-darker);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            background-color: var(--white);
+            border: 2px solid var(--black);
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .container.loaded {
+            opacity: 1;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            background-image: linear-gradient(to right, var(--emerald-light), var(--emerald-darker));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border: 2px solid var(--black);
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background-color: var(--white);
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: var(--gray);
+        }
+        .tab.active {
+            background-image: linear-gradient(to right, var(--emerald-light), var(--emerald-darker));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .tab:not(.active):hover {
+            color: var(--black);
+        }
+        .forms-container {
+            position: relative;
+            overflow: hidden;
+            transition: height 0.5s ease;
+        }
+        .form {
+            width: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+            opacity: 0;
+            transform: translateY(100%);
+        }
+        .form.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--black);
+            font-family: inherit;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--emerald-dark);
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--white);
+            color: var(--black);
+            border: 2px solid var(--black);
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background-image: linear-gradient(to right, var(--emerald-light), var(--emerald-darker));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            border-color: var(--emerald-darker);
+        }
+        .social-login {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .social-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .social-button svg {
+            margin-right: 10px;
+            transition: fill 0.3s ease;
+        }
+        .social-button:hover svg {
+            fill: url(#shinyEmerald);
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.7em;
+            color: var(--gray);
+        }
+        .footer a {
+            text-decoration: none;
+            background-image: linear-gradient(to right, var(--emerald-light), var(--emerald-darker));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            transition: opacity 0.3s ease;
+        }
+        .footer a:hover {
+            opacity: 0.8;
+        }
+        .loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .loader {
+            width: 100px;
+            height: 100px;
+            border: 5px solid var(--emerald-light);
+            border-top: 5px solid var(--emerald-darker);
+            border-radius: 50%;
+            animation: spin 1s linear infinite, color-change 3s ease-in-out infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes color-change {
+            0%, 100% { border-top-color: var(--emerald-darker); }
+            50% { border-top-color: var(--emerald-light); }
+        }
+        /* Error message styling */
+        #error-message {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px); /* Start slightly off-screen */
+            width: 80%;
+            max-width: 500px;
+            opacity: 0; /* Start invisible */
+            background-color: var(--white);
+            color: var(--danger);
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: 2px solid var(--danger);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            text-align: center;
+            transition: opacity 0.5s ease, transform 0.3s ease; /* Smooth transitions */
+            display: none; /* Hide initially */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" style="text-decoration: none"><h2>Voxalyze</h2></a>
+        <div class="tabs">
+            <button id="signinTab" class="tab active">Sign In</button>
+            <button id="signupTab" class="tab">Sign Up</button>
+        </div>
+        <div class="forms-container">
+            <form id="signinForm" class="form active">
+                <div class="form-group">
+                    <label for="signinEmail">Email</label>
+                    <input type="email" id="signinEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="signinPassword">Password</label>
+                    <input type="password" id="signinPassword" required>
+                </div>
+                <button id="SignInBtn" type="submit">Sign In</button>
+            </form>
+            <form id="signupForm" class="form">
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" required>
+                </div>
+                <button id="SignUpBtn" type="submit">Sign Up</button>
+            </form>
+        </div>
+        <div class="social-login">
+            <p>Or continue with</p>
+            <button id="gmailLogin" class="social-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 0 1-5.279-5.28 5.27 5.27 0 0 1 5.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 0 0-8.934 8.934 8.907 8.907 0 0 0 8.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z"/>
+                </svg>
+                Gmail
+            </button>
+        </div>
+        <div id="footer-placeholder"></div>
+        <div id="error-message" class="error-message"></div>
+    </div>
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <linearGradient id="shinyEmerald" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color: #50C879" />
+                <stop offset="100%" style="stop-color: #1C593C" />
+            </linearGradient>
+        </defs>
+    </svg>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(registration => {
+                        console.log('Service Worker registered successfully:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        function switchForms(showSignUp) {
+            const formsContainer = document.querySelector('.forms-container');
+            const signinTab = document.getElementById('signinTab');
+            const signupTab = document.getElementById('signupTab');
+            const signinForm = document.getElementById('signinForm');
+            const signupForm = document.getElementById('signupForm');
+
+            if (showSignUp) {
+                signupForm.style.transform = 'translateY(0)';
+                signinForm.style.transform = 'translateY(-100%)';
+                signupForm.classList.add('active');
+                signinForm.classList.remove('active');
+                signupTab.classList.add('active');
+                signinTab.classList.remove('active');
+            } else {
+                signinForm.style.transform = 'translateY(0)';
+                signupForm.style.transform = 'translateY(100%)';
+                signinForm.classList.add('active');
+                signupForm.classList.remove('active');
+                signinTab.classList.add('active');
+                signupTab.classList.remove('active');
+            }
+
+            // Adjust container height
+            const activeForm = showSignUp ? signupForm : signinForm;
+            formsContainer.style.height = `${activeForm.offsetHeight}px`;
+
+            clearError();
+        }
+
+        function showLoader() {
+            const loader = document.createElement('div');
+            loader.className = 'loader-container';
+            loader.innerHTML = '<div class="loader"></div>';
+            document.body.appendChild(loader);
+        }
+
+        function hideLoader() {
+            const loader = document.querySelector('.loader-container');
+            if (loader) {
+                loader.remove();
+            }
+
+            const container = document.querySelector('.container');
+            if (container) {
+                container.classList.add('loaded');
+            }
+        }
+
+        async function signIn(email, password) {
+            try {
+                const response = await fetch('/auth/signin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include', // Ensures cookies are sent
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    // Optionally store the token (if not using cookies)
+                    localStorage.setItem('access_token', data.token);
+
+                    // Redirect to the dashboard
+                    window.location.href = '/p';
+                } else {
+                    console.error('Signin failed:', data.error);
+                    showError(data.error || 'Sign in failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Signin error:', error);
+                showError('An unexpected error occurred. Please try again.');
+            }
+        }
+
+        async function signUp(email, password) {
+            try {
+                const response = await fetch('/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showError('Sign up successful. Please sign in.', 'success');
+                    switchForms(false); // Switch to sign in form
+                } else {
+                    showError(data.error || 'Sign up failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                showError('An unexpected error occurred. Please try again.');
+            }
+        }
+
+        let lastRedirectTime = 0;
+        function safeRedirect(url) {
+            const now = Date.now();
+            if (now - lastRedirectTime > 5000) {  // 5 seconds cooldown
+                lastRedirectTime = now;
+                window.location.href = url;
+            } else {
+                console.warn('Redirect blocked due to frequency limit');
+            }
+        }
+
+        async function checkAuthAndRedirect() {
+            // Check if we've just logged out
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('logout') === 'true') {
+                // Clear the URL parameter
+                window.history.replaceState({}, document.title, "/");
+                return;  // Don't redirect if we've just logged out
+            }
+
+            try {
+                const response = await fetch('/auth/check-auth', {
+                    credentials: 'include'
+                });
+
+                if (response.ok && window.location.pathname === '/') {
+                    safeRedirect('/p');
+                } else if (!response.ok && window.location.pathname === '/p') {
+                    safeRedirect('/');
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                showError('Failed to check authentication status. Please try again.');
+            }
+        }
+
+        async function signInWithGoogle() {
+            // This function should be implemented using Google's OAuth 2.0 flow
+            // For now, we'll just show an alert
+            alert('Google Sign-In is not yet implemented');
+        }
+
+        function validatePassword(password) {
+            const minLength = 8;
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumbers = /\d/.test(password);
+            const hasNonalphas = /\W/.test(password);
+            return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasNonalphas;
+        }
+
+        function clearAuthData() {
+            document.cookie = 'access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            localStorage.removeItem('user');
+            sessionStorage.clear();
+        }
+
+        function showError(message, type = 'error') {
+            const errorDiv = document.getElementById('error-message');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                errorDiv.style.opacity = '1';
+                errorDiv.style.transform = 'translateX(-50%) translateY(0)'; // Move into view
+
+                setTimeout(() => {
+                    errorDiv.style.opacity = '0';
+                    errorDiv.style.transform = 'translateX(-50%) translateY(10px)';
+                    setTimeout(() => {
+                        errorDiv.style.display = 'none';
+                    }, 300);
+                }, 4000);
+            }
+        }
+
+        function clearError() {
+            const errorDiv = document.getElementById('error-message');
+            if (errorDiv) {
+                errorDiv.textContent = '';
+                errorDiv.style.opacity = '0';
+                errorDiv.style.transform = 'translateX(-50%) translateY(10px)';
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showLoader();
+
+            const formsContainer = document.querySelector('.forms-container');
+            const signinForm = document.getElementById('signinForm');
+            const signupForm = document.getElementById('signupForm');
+            const signinTab = document.getElementById('signinTab');
+            const signupTab = document.getElementById('signupTab');
+
+            // Set initial form visibility and height
+            if (formsContainer && signinForm && signupForm) {
+                signinForm.classList.add('active');
+                signinForm.style.transform = 'translateY(0)';
+                signupForm.style.transform = 'translateY(100%)';
+                formsContainer.style.height = `${signinForm.offsetHeight}px`;
+            }
+
+            // Tab click events to switch between sign-in and sign-up forms
+            if (signinTab && signupTab) {
+                signinTab.addEventListener('click', () => switchForms(false));
+                signupTab.addEventListener('click', () => switchForms(true));
+            }
+
+            signinForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('signinEmail').value;
+                const password = document.getElementById('signinPassword').value;
+                await signIn(email, password);
+            });
+
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('signupEmail').value;
+                const password = document.getElementById('signupPassword').value;
+                if (!validatePassword(password)) {
+                    showError('Password must be at least 8 characters long and contain uppercase, lowercase, numbers, and special characters.');
+                    return;
+                }
+                await signUp(email, password);
+            });
+
+            const gmailLoginButton = document.getElementById('gmailLogin');
+            if (gmailLoginButton) {
+                gmailLoginButton.addEventListener('click', signInWithGoogle);
+            }
+
+            setTimeout(() => {
+                hideLoader();
+                checkAuthAndRedirect();
+            }, 1000);
+
+            function onGoogleSignIn(tokenResponse) {
+                const id_token = googleUser.getAuthResponse().id_token;
+
+                fetch('/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id_token }) // Send the ID token to the backend
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message === "Login successful") {
+                        // Redirect to dashboard or handle login success
+                        window.location.href = "/p";
+                    } else {
+                        console.error("Login failed", data);
+                        showError("Login failed. Please try again.");
+                    }
+                })
+                .catch(error => {
+                    console.error("An unexpected error occurred", error);
+                    showError("An unexpected error occurred. Please try again.");
+                });
+            }
+
+            window.onload = function () {
+                google.accounts.id.initialize({
+                    client_id: '1056563988489-vntd39gg1cj9775db5jlpmbiall1nl5j.apps.googleusercontent.com',
+                    callback: onGoogleSignIn,
+                    ux_mode: 'redirect',
+                    redirect_uri: 'https://voxalyze.up.railway.app/',
+                });
+                google.accounts.id.renderButton(
+                    document.getElementById('gmailLogin'),
+                    { theme: 'outline', size: 'large' }
+                );
+                google.accounts.id.prompt();
+            };
+        });
+    </script>
+</body>
+</html>
