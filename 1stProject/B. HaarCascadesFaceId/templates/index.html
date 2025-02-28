@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Record w/ Haar Cascades</title>
+  <link href="https://fonts.googleapis.com/css?family=Press+Start+2P" rel="stylesheet">
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffaa00;
+      font-family: 'Press Start 2P', cursive;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2, h3 {
+      text-align: center;
+      text-shadow: 2px 2px #d6dd05;
+      margin-bottom: 20px;
+    }
+    video, canvas {
+      display: block;
+      margin: 0 auto 20px;
+      border: 4px solid #ffaa00;
+      box-shadow: 0 0 20px #ffaa00;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: #000;
+      box-shadow: 0 0 10px #ffaa00;
+    }
+    th, td {
+      border: 1px solid #ffaa00;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #ffaa00;
+      color: #121212;
+    }
+    tr:nth-child(even) {
+      background-color: #1d1d1d;
+    }
+    tr:nth-child(odd) {
+      background-color: #000;
+    }
+  </style>
+</head>
+<body>
+  <h3>Attendance Record w/ Haar Cascades</h3>
+  <video id="video" width="640" height="480" style="display:none;" autoplay></video>
+  <canvas id="canvas" width="640" height="480"></canvas>
+  <h3>Time-stamped Recognized Attendance:</h3>
+  <table id="readings-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Event Type</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Readings will be inserted here -->
+    </tbody>
+  </table>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+
+    // Request camera access
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+        video.play();
+
+        // Send frames to the server periodically
+        setInterval(() => {
+          context.drawImage(video, 0, 0, 640, 480);
+          const imageData = canvas.toDataURL('image/jpeg');
+
+          fetch('/process_frame', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ frame: imageData }),
+          })
+          .then(response => response.json())
+          .then(data => {
+            drawDetections(data.faces); // Update canvas with detections
+          })
+          .catch(error => {
+            console.error('Error sending frame to server:', error);
+          });
+        }, 500); // Adjust the interval as needed
+      })
+      .catch(err => {
+        console.error('Error accessing the camera:', err);
+      });
+
+    // Function to draw detected faces and names
+    function drawDetections(faces) {
+      console.log("Drawing detections for faces:", faces);
+      context.drawImage(video, 0, 0, 640, 480); // Draw video frame
+
+      faces.forEach(face => {
+        console.log("Drawing face at:", face);
+
+        const cornerRadius = 20; // Radius for the rounded corners
+        const x = face.x;
+        const y = face.y;
+        const width = face.w;
+        const height = face.h;
+
+        // Draw bounding box with rounded corners
+        context.beginPath();
+        context.moveTo(x + cornerRadius, y);
+        context.arcTo(x + width, y, x + width, y + height, cornerRadius);
+        context.arcTo(x + width, y + height, x, y + height, cornerRadius);
+        context.arcTo(x, y + height, x, y, cornerRadius);
+        context.arcTo(x, y, x + width, y, cornerRadius);
+        context.closePath();
+
+        context.strokeStyle = '#ffaa00';
+        context.lineWidth = 4;
+        context.stroke();
+
+        // Draw name label
+        context.fillStyle = '#d6dd05';
+        context.font = '20px Arial';
+        const label = face.name || 'Unknown';
+        context.fillText(label, x, y - 10);
+      });
+    }
+
+    // Fetch and update attendance table
+    function updateReadings() {
+      fetch('/get_readings')
+        .then(response => response.json())
+        .then(readings => {
+          const tbody = document.querySelector('#readings-table tbody');
+          tbody.innerHTML = '';
+          readings.forEach(reading => {
+            const row = `<tr>
+              <td>${reading[0]}</td>
+              <td>${reading[1]}</td>
+              <td>${reading[2]}</td>
+              <td>${reading[3]}</td>
+            </tr>`;
+            tbody.insertAdjacentHTML('beforeend', row);
+          });
+        })
+        .catch(err => {
+          console.error('Error fetching readings:', err);
+        });
+    }
+
+    // Update attendance readings every 2 seconds
+    setInterval(updateReadings, 2000);
+  </script>
+</body>
+</html>
